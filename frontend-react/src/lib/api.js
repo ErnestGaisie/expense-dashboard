@@ -120,20 +120,6 @@ export async function getUserWithTransactions(userId) {
 
 // Create a new user
 export async function createUser(userData) {
-  if (USE_MOCK_DATA) {
-    // Create a mock user with a random ID
-    const newUser = {
-      _id: Math.random().toString(36).substring(2, 15),
-      ...userData,
-      totalIncome: 0,
-      totalExpense: 0,
-      transactions: [],
-    };
-
-    console.log("Created mock user:", newUser);
-    return newUser;
-  }
-
   return await fetchWithErrorHandling(`${API_URL}/users`, {
     method: "POST",
     body: JSON.stringify(userData),
@@ -142,19 +128,6 @@ export async function createUser(userData) {
 
 // Update an existing user
 export async function updateUser(userId, userData) {
-  if (USE_MOCK_DATA) {
-    console.log(`Mock update for user ${userId}:`, userData);
-
-    // Return a simulated updated user
-    return {
-      _id: userId,
-      name: userData.name || "Updated User",
-      email: userData.email || "updated@example.com",
-      totalIncome: 0,
-      totalExpense: 0,
-    };
-  }
-
   try {
     return await fetchWithErrorHandling(`${API_URL}/users/${userId}`, {
       method: "PUT",
@@ -168,11 +141,6 @@ export async function updateUser(userId, userData) {
 
 // Delete a user
 export async function deleteUser(userId) {
-  if (USE_MOCK_DATA) {
-    console.log(`Mock delete for user ${userId}`);
-    return true;
-  }
-
   try {
     await fetchWithErrorHandling(`${API_URL}/users/${userId}`, {
       method: "DELETE",

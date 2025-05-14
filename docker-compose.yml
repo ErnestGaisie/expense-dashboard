@@ -12,6 +12,13 @@ services:
       - ./backend:/app
       - /app/node_modules
 
+  frontend:
+    build: ./frontend-react
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
   mongo:
     image: mongo
     container_name: mongo
