@@ -1,29 +1,30 @@
-"use client"
-
 import * as React from "react"
 import { cn } from "../../lib/utils"
 
 const AlertDialog = ({ children, open, onOpenChange }) => {
-  const [isOpen, setIsOpen] = React.useState(open || false)
-
-  React.useEffect(() => {
-    if (open !== undefined) {
-      setIsOpen(open)
-      if (onOpenChange) onOpenChange(open)
+    const [isOpen, setIsOpen] = React.useState(false)
+  
+    // Only update when `open` is controlled
+    React.useEffect(() => {
+      if (open !== undefined) {
+        setIsOpen(open)
+      }
+    }, [open])
+  
+    const handleOpenChange = (value) => {
+      if (open === undefined) {
+        setIsOpen(value)
+      }
+      onOpenChange?.(value)
     }
-  }, [open, onOpenChange])
-
-  const handleOpenChange = (value) => {
-    setIsOpen(value)
-    if (onOpenChange) onOpenChange(value)
+  
+    return (
+      <AlertDialogContext.Provider value={{ open: open ?? isOpen, onOpenChange: handleOpenChange }}>
+        {children}
+      </AlertDialogContext.Provider>
+    )
   }
-
-  return (
-    <AlertDialogContext.Provider value={{ open: isOpen, onOpenChange: handleOpenChange }}>
-      {children}
-    </AlertDialogContext.Provider>
-  )
-}
+  
 
 const AlertDialogContext = React.createContext({
   open: false,
@@ -31,15 +32,32 @@ const AlertDialogContext = React.createContext({
 })
 
 const AlertDialogTrigger = React.forwardRef(({ className, children, asChild = false, ...props }, ref) => {
-  const { onOpenChange } = React.useContext(AlertDialogContext)
-  const Comp = asChild ? React.Fragment : "button"
-
-  return (
-    <Comp ref={ref} onClick={() => onOpenChange(true)} className={className} {...props}>
-      {children}
-    </Comp>
-  )
-})
+    const { onOpenChange } = React.useContext(AlertDialogContext)
+  
+    if (asChild && React.isValidElement(children)) {
+      return React.cloneElement(children, {
+        ref,
+        onClick: (e) => {
+          children.props.onClick?.(e)
+          onOpenChange(true)
+        },
+        className: cn(children.props.className, className),
+        ...props,
+      })
+    }
+  
+    return (
+      <button
+        ref={ref}
+        onClick={() => onOpenChange(true)}
+        className={className}
+        {...props}
+      >
+        {children}
+      </button>
+    )
+  })
+  
 AlertDialogTrigger.displayName = "AlertDialogTrigger"
 
 const AlertDialogContent = React.forwardRef(({ className, children, ...props }, ref) => {

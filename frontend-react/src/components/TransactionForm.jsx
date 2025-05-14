@@ -1,13 +1,21 @@
-import { useState } from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
-import { Button } from "./ui/button"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "./ui/form"
-import { Input } from "./ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
-import { RadioGroup, RadioGroupItem } from "./ui/radio-group"
-import { createTransaction, updateTransaction } from "../lib/api"
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "./ui/button";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "./ui/form";
+import { Input } from "./ui/input";
+import { Select, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
+import { createTransaction, updateTransaction } from "../lib/api";
 
 // Categories for expenses
 const EXPENSE_CATEGORIES = [
@@ -23,7 +31,7 @@ const EXPENSE_CATEGORIES = [
   "Travel",
   "Gifts & Donations",
   "Other",
-]
+];
 
 const transactionFormSchema = z.object({
   type: z.enum(["income", "expense"]),
@@ -37,10 +45,10 @@ const transactionFormSchema = z.object({
   date: z.string().refine((val) => !isNaN(Date.parse(val)), {
     message: "Please enter a valid date.",
   }),
-})
+});
 
 export default function TransactionForm({ userId, transaction, onSuccess }) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Default values for the form
   const defaultValues = {
@@ -51,37 +59,42 @@ export default function TransactionForm({ userId, transaction, onSuccess }) {
     date: transaction?.date
       ? new Date(transaction.date).toISOString().split("T")[0]
       : new Date().toISOString().split("T")[0],
-  }
+  };
 
   const form = useForm({
     resolver: zodResolver(transactionFormSchema),
     defaultValues,
-  })
+  });
 
   // Watch the transaction type to conditionally show category field
-  const transactionType = form.watch("type")
+  const transactionType = form.watch("type");
 
   async function onSubmit(data) {
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
     try {
-      let result
+      if (data.type === "income") {
+        data.category = "income";
+      }
+
+      let result;
       if (transaction) {
         // Update existing transaction
-        result = await updateTransaction(userId, transaction._id, data)
+        result = await updateTransaction(userId, transaction._id, data);
       } else {
         // Create new transaction
-        result = await createTransaction(userId, data)
-        form.reset(defaultValues) // Reset form after successful creation
+        console.log("DD", data);
+        result = await createTransaction(userId, data);
+        form.reset(defaultValues); // Reset form after successful creation
       }
 
       if (onSuccess) {
-        onSuccess(result)
+        onSuccess(result);
       }
     } catch (error) {
-      console.error("Error submitting form:", error)
+      console.error("Error submitting form:", error);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
 
@@ -92,22 +105,20 @@ export default function TransactionForm({ userId, transaction, onSuccess }) {
           control={form.control}
           name="type"
           render={({ field }) => (
-            <FormItem className="space-y-3">
+            <FormItem>
               <FormLabel>Transaction Type</FormLabel>
               <FormControl>
-                <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex space-x-4">
-                  <FormItem className="flex items-center space-x-2 space-y-0">
-                    <FormControl>
-                      <RadioGroupItem value="income" />
-                    </FormControl>
-                    <FormLabel className="font-normal cursor-pointer">Income</FormLabel>
-                  </FormItem>
-                  <FormItem className="flex items-center space-x-2 space-y-0">
-                    <FormControl>
-                      <RadioGroupItem value="expense" />
-                    </FormControl>
-                    <FormLabel className="font-normal cursor-pointer">Expense</FormLabel>
-                  </FormItem>
+                <RadioGroup className="flex flex-row gap-4">
+                  {["income", "expense"].map((value) => (
+                    <RadioGroupItem
+                      key={value}
+                      value={value}
+                      checked={field.value === value}
+                      onChange={() => field.onChange(value)}
+                    >
+                      {value.charAt(0).toUpperCase() + value.slice(1)}
+                    </RadioGroupItem>
+                  ))}
                 </RadioGroup>
               </FormControl>
               <FormMessage />
@@ -144,9 +155,15 @@ export default function TransactionForm({ userId, transaction, onSuccess }) {
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Input placeholder="Grocery shopping" className="bg-background/50 border-gray-800" {...field} />
+                <Input
+                  placeholder="Grocery shopping"
+                  className="bg-background/50 border-gray-800"
+                  {...field}
+                />
               </FormControl>
-              <FormDescription>Enter a brief description of the transaction.</FormDescription>
+              <FormDescription>
+                Enter a brief description of the transaction.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -159,21 +176,23 @@ export default function TransactionForm({ userId, transaction, onSuccess }) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Category</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="bg-background/50 border-gray-800">
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="bg-background/95 backdrop-blur border-gray-800">
+                <FormControl>
+                  <Select
+                    value={field.value}
+                    onChange={field.onChange}
+                    className="bg-background/50 border-gray-800"
+                  >
+                    <option value="">Select a category</option>
                     {EXPENSE_CATEGORIES.map((category) => (
                       <SelectItem key={category} value={category}>
                         {category}
                       </SelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
-                <FormDescription>Select a category for this expense.</FormDescription>
+                  </Select>
+                </FormControl>
+                <FormDescription>
+                  Select a category for this expense.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -187,9 +206,15 @@ export default function TransactionForm({ userId, transaction, onSuccess }) {
             <FormItem>
               <FormLabel>Date</FormLabel>
               <FormControl>
-                <Input type="date" className="bg-background/50 border-gray-800" {...field} />
+                <Input
+                  type="date"
+                  className="bg-background/50 border-gray-800"
+                  {...field}
+                />
               </FormControl>
-              <FormDescription>Enter the date of the transaction.</FormDescription>
+              <FormDescription>
+                Enter the date of the transaction.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -207,10 +232,14 @@ export default function TransactionForm({ userId, transaction, onSuccess }) {
             </Button>
           )}
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : transaction ? "Update" : "Add Transaction"}
+            {isSubmitting
+              ? "Saving..."
+              : transaction
+              ? "Update"
+              : "Add Transaction"}
           </Button>
         </div>
       </form>
     </Form>
-  )
+  );
 }

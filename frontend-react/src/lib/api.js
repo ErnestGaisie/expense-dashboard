@@ -1,20 +1,14 @@
 import { mockUsers, getMockUserById } from "./mock-data";
 
-// Use environment variable for API URL
+// Environment variable for API URL
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
 
 // Flag to use mock data when API is unavailable
-const USE_MOCK_DATA = true; // Set to false when your API is ready
+const USE_MOCK_DATA = true;
 
 // Helper function to handle fetch errors
 async function fetchWithErrorHandling(url, options = {}) {
   console.log(`Attempting to fetch from: ${url}`);
-
-  if (USE_MOCK_DATA) {
-    console.log("Using mock data instead of API");
-    // Return null to trigger the mock data fallback
-    return null;
-  }
 
   try {
     const response = await fetch(url, {
@@ -25,6 +19,8 @@ async function fetchWithErrorHandling(url, options = {}) {
       },
     });
 
+    console.log("RESPONSE", response);
+
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -32,7 +28,6 @@ async function fetchWithErrorHandling(url, options = {}) {
     return await response.json();
   } catch (error) {
     console.error(`Fetch error for ${url}:`, error);
-    // Return a default value based on the expected return type
     return null;
   }
 }
@@ -41,8 +36,8 @@ async function fetchWithErrorHandling(url, options = {}) {
 export async function getUsersWithSummary() {
   // Fetch users from the API
   const users = await fetchWithErrorHandling(`${API_URL}/users`);
+  console.log("USERS", users);
 
-  // If API fetch failed, use mock data
   if (!users) {
     console.log("Using mock users data");
     return mockUsers;
@@ -52,7 +47,6 @@ export async function getUsersWithSummary() {
   const usersWithSummary = await Promise.all(
     users.map(async (user) => {
       try {
-        // Use the correct transactions endpoint
         const transactions = await fetchWithErrorHandling(
           `${API_URL}/transactions/${user._id}`
         );
@@ -100,7 +94,6 @@ export async function getUsersWithSummary() {
 export async function getUserById(userId) {
   const user = await fetchWithErrorHandling(`${API_URL}/users/${userId}`);
 
-  // If API fetch failed, use mock data
   if (!user) {
     console.log(`Using mock data for user ${userId}`);
     return getMockUserById(userId) || null;
@@ -115,12 +108,6 @@ export async function getUserWithTransactions(userId) {
   const user = await getUserById(userId);
   if (!user) return null;
 
-  // If we're using mock data, the transactions are already included
-  if (USE_MOCK_DATA) {
-    return user;
-  }
-
-  // Fetch the user's transactions using the correct endpoint
   const transactions = await fetchWithErrorHandling(
     `${API_URL}/transactions/${userId}`
   );
@@ -199,18 +186,6 @@ export async function deleteUser(userId) {
 
 // Create a new transaction
 export async function createTransaction(userId, transactionData) {
-  if (USE_MOCK_DATA) {
-    // Create a mock transaction with a random ID
-    const newTransaction = {
-      _id: Math.random().toString(36).substring(2, 15),
-      userId,
-      ...transactionData,
-    };
-
-    console.log("Created mock transaction:", newTransaction);
-    return newTransaction;
-  }
-
   return await fetchWithErrorHandling(`${API_URL}/transactions/${userId}`, {
     method: "POST",
     body: JSON.stringify(transactionData),
@@ -223,24 +198,6 @@ export async function updateTransaction(
   transactionId,
   transactionData
 ) {
-  if (USE_MOCK_DATA) {
-    console.log(
-      `Mock update for transaction ${transactionId}:`,
-      transactionData
-    );
-
-    // Return a simulated updated transaction
-    return {
-      _id: transactionId,
-      userId,
-      type: transactionData.type || "expense",
-      amount: transactionData.amount || 0,
-      description: transactionData.description || "Updated Transaction",
-      category: transactionData.category,
-      date: transactionData.date || new Date().toISOString(),
-    };
-  }
-
   try {
     return await fetchWithErrorHandling(
       `${API_URL}/transactions/${transactionId}`,
@@ -257,11 +214,6 @@ export async function updateTransaction(
 
 // Delete a transaction
 export async function deleteTransaction(userId, transactionId) {
-  if (USE_MOCK_DATA) {
-    console.log(`Mock delete for transaction ${transactionId}`);
-    return true;
-  }
-
   try {
     await fetchWithErrorHandling(`${API_URL}/transactions/${transactionId}`, {
       method: "DELETE",

@@ -1,4 +1,3 @@
-// Mock users data for when the API is unavailable
 export const mockUsers = [
   {
     _id: "1",
